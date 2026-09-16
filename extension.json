@@ -2,16 +2,16 @@
 	"name": "easyeda-color-silkscreen",
 	"uuid": "7f4b2c61a9d84e0fa3765b2c19e8d402",
 	"displayName": "AI 彩色丝印生成器",
-	"description": "使用本地 ONNX 或云端模型生成并写回彩色丝印",
+	"description": "基于本地部署 ONNX 文生图模型构建彩色丝印",
 	"version": "1.9.1",
-	"publisher": "EasyEDA Color contributors",
+	"publisher": "EasyEDA",
 	"engines": {
 		"eda": "^3.2.0"
 	},
 	"license": "Apache-2.0",
 	"repository": {
-		"type": "extension-store",
-		"url": ""
+		"type": "github",
+		"url": "https://github.com/easyeda/eext-color-silkscreen-generator"
 	},
 	"categories": "PCB",
 	"keywords": [
@@ -22,8 +22,8 @@
 	"images": {
 		"logo": "./images/logo.png"
 	},
-	"homepage": "",
-	"bugs": "",
+	"homepage": "https://github.com/easyeda",
+	"bugs": "https://github.com/easyeda/eext-color-silkscreen-generator/issues",
 	"activationEvents": {},
 	"entry": "./dist/index",
 	"dependentExtensions": {},

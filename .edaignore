@@ -8,7 +8,6 @@
 /coverage/
 /node_modules/
 /model-exports/
-/src/
 /tools/
 /iframe/src/
 /iframe/ort/
@@ -20,11 +19,6 @@
 /iframe/circuit-art.mjs
 /iframe/regions.mjs
 /tests/
-/README.en.md
-/README.ja.md
-/README.ru.md
-/README.zh-Hant.md
-/CHANGELOG.md
 /.editorconfig
 /.gitattributes
 /.gitignore
