@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-Hans">
+	<head>
+		<title>AI 彩色丝印生成器</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="stylesheet" href="/iframe/styles.css" />
+	</head>
+	<body>
+		<header class="topbar">
+			<div><h1>AI 彩色丝印</h1><p id="status">正在读取 PCB…</p></div>
+			<div class="actions">
+				<button id="scanBtn">刷新板面</button>
+				<button id="generateBtn" class="primary">生成</button>
+				<button id="cancelBtn" disabled>取消</button>
+				<button id="applyBtn" disabled>应用到 PCB</button>
+				<button id="undoApplyBtn" disabled>撤销写回</button>
+			</div>
+		</header>
+		<main>
+			<aside class="panel settings">
+				<label>图案样式<select id="artworkStyle"><option value="ai">AI 主题图案</option><option value="rainbow-circuit">彩虹电路（几何生成）</option></select></label>
+				<section id="circuitSettings" hidden>
+					<p class="hint">暖白底、彩色细线、45° 转折和圆环端点。按 SVG 器件 BBOX 绕行，无需下载模型。装饰走线不代表电气连接。</p>
+					<label>随机种子<input id="circuitSeed" type="number" min="0" max="4294967295" /></label><button id="circuitRandomBtn">换一个种子</button>
+					<label>目标走线数量<input id="circuitDensity" type="number" min="40" max="220" /></label>
+					<label>线宽<input id="circuitLineWidth" type="number" min="0.7" max="4" step="0.1" /></label>
+					<label>器件留白间距<input id="circuitClearance" type="number" min="0" max="20" step="1" /></label>
+					<p class="hint">尺寸以板宽 1000 的 SVG 单位计。白底会一同写回，器件 BBOX 内透明。</p>
+				</section>
+				<div id="engineSelector" class="segmented"><button id="localEngineBtn" class="active">本地 ONNX</button><button id="cloudEngineBtn">云端模型</button></div>
+				<section id="localSettings">
+					<label>模型源<select id="localModelSource"><option value="remote">Hugging Face / 镜像缓存</option><option value="imported">已导入模型</option></select></label>
+					<div id="remoteModelSettings">
+						<label>生图模型<select id="localModelPreset"><option value="inpainting">SD 2 Inpainting（BBOX 留白）</option><option value="standard">SD 1.5（普通生图）</option><option value="custom">自定义链接</option></select></label>
+						<label id="customModelLabel" hidden>模型链接<input id="customModelUrl" type="url" placeholder="Hugging Face 模型仓库或 manifest.json URL" /><span class="hint">支持兼容的 512px FP32 Diffusers ONNX 模型目录。</span></label>
+						<label>模型镜像<select id="mirrorPreset"><option value="huggingface">Hugging Face</option><option value="hf-mirror">hf-mirror.com</option><option value="custom">自定义地址</option></select></label>
+						<label id="customMirrorLabel" hidden>自定义镜像地址<input id="modelMirror" type="url" spellcheck="false" /></label>
+						<button id="downloadModelBtn">下载/校验模型</button>
+					</div>
+					<div id="importedModelSettings" hidden>
+						<div class="row"><label>已导入模型<select id="importedModel"></select></label><button id="deleteModelBtn">删除</button></div>
+						<label class="file-button">导入本地模型目录<input id="importModelInput" type="file" webkitdirectory multiple /></label>
+						<p class="hint">选择完整 ONNX Diffusers 目录，支持普通生图和 Inpainting。</p>
+					</div>
+					<label>运行后端<select id="localBackend"><option value="auto">自动：WebGPU → WASM</option><option value="webgpu">WebGPU</option><option value="wasm">WASM / CPU（实验，最多 8 步）</option></select><span class="hint">CPU 可运行，但完整 FP32 模型通常需要数分钟并接近浏览器内存上限。</span></label>
+					<div class="row"><label>Seed<input id="localSeed" type="number" min="0" max="4294967295" /></label><button id="randomSeedBtn">随机</button></div>
+					<div class="row"><label>步数<input id="localSteps" type="number" min="1" max="30" /></label><label>引导强度<input id="localGuidance" type="number" min="1" max="15" step="0.5" /></label></div>
+					<label id="avoidKeepoutsLabel" class="check"><input id="avoidKeepouts" type="checkbox" checked /> Inpainting 器件 BBOX 留白</label>
+					<progress id="modelProgress" value="0" max="1"></progress><p id="modelStatus" class="hint">正在检查模型缓存…</p>
+				</section>
+				<section id="cloudSettings" hidden>
+					<label>模型源<select id="cloudModelSource"><option value="llm">LLM 模型（生成 SVG）</option><option value="image">图像生成模型</option></select></label>
+					<div id="cloudLlmSettings">
+					<label>API URL<input id="apiUrl" type="url" spellcheck="false" /></label>
+					<label>模型<input id="model" spellcheck="false" /></label>
+					<label>API Key<input id="apiKey" type="password" autocomplete="off" placeholder="仅保存在扩展用户配置" /></label>
+					<label>温度<input id="temperature" type="number" min="0" max="1.5" step="0.1" /></label>
+					<label class="check"><input id="autoRepair" type="checkbox" checked /> 严重冲突时自动修复一次</label>
+					</div>
+					<div id="cloudImageSettings" hidden>
+						<label>图像 API URL<input id="imageApiUrl" type="url" placeholder="https://服务地址/v1/images/generations" /></label>
+						<label>图像模型<input id="imageModel" placeholder="服务商的模型 ID" /></label>
+						<label>图像 API Key<input id="imageApiKey" type="password" autocomplete="off" /></label>
+						<label>图像尺寸<select id="imageSize"><option value="1024x1024">1024 × 1024</option><option value="1536x1024">1536 × 1024</option><option value="1024x1536">1024 × 1536</option><option value="512x512">512 × 512</option></select></label>
+						<p class="hint">OpenAI 兼容 Images API，支持 base64 或 URL 返回。该接口按提示词生图，不提供 BBOX 蒙版避让。</p>
+					</div>
+					<label>超时/秒<input id="timeout" type="number" min="10" max="300" step="5" /></label>
+				</section>
+				<section id="rasterProcessingSettings">
+					<h2>栅格处理</h2>
+					<label>近黑背景阈值<input id="backgroundThreshold" type="range" min="0" max="100" /></label>
+					<label>调色板颜色数<input id="paletteSize" type="range" min="2" max="8" /></label>
+					<label>饱和度<input id="rasterSaturation" type="range" min="0" max="2" step="0.05" /></label>
+					<label>整体透明度<input id="rasterOpacity" type="range" min="0" max="1" step="0.05" /></label>
+					<button id="reprocessBtn" disabled>重新处理</button>
+				</section>
+				<label id="themePromptLabel">主题提示（本地模型建议英文）<textarea id="themePrompt" rows="5">ocean life theme, a clear large manta ray silhouette, organic flowing ribbons, a few plankton dots of varied sizes, bold flat poster illustration</textarea></label>
+				<button id="saveConfigBtn">保存配置</button>
+				<p class="hint">本地模式不会上传 PCB 数据；只有明确切到云端后才会发起 API 请求。</p>
+				<h2>预览</h2>
+				<label class="check"><input id="showComponents" type="checkbox" checked /> 器件 BBOX</label>
+				<label class="check"><input id="showKeepouts" type="checkbox" checked /> 禁绘区</label>
+				<label class="check"><input id="showOriginal" type="checkbox" /> 裁剪前图案</label>
+				<label id="rasterViewLabel" class="check"><select id="rasterView"><option value="processed">制造裁剪图</option><option value="raw">原始模型图</option></select></label>
+				<label class="check"><input id="showConflicts" type="checkbox" checked /> 冲突提示</label>
+			</aside>
+			<section class="stage-wrap">
+				<div id="stage" tabindex="0" aria-label="PCB SVG 预览"></div>
+				<div id="emptyState">读取 PCB 后即可生成。也可加载内置演示板检查界面。<button id="demoBtn">加载演示板</button></div>
+			</section>
+			<aside class="panel inspector">
+				<h2>场景</h2><div id="sceneStats" class="stats">—</div>
+				<h2>路径</h2><div id="pathList" class="path-list"></div>
+				<section id="pathEditor" hidden>
+					<h2 id="pathTitle">路径</h2>
+					<label>填充色<input id="pathFill" type="color" /></label>
+					<label>描边色<input id="pathStroke" type="color" /></label>
+					<label>透明度<input id="pathOpacity" type="range" min="0" max="1" step="0.05" /></label>
+					<p id="pathMeta" class="hint"></p><button id="deletePathBtn" class="danger">删除此路径</button>
+				</section>
+				<h2>诊断</h2><pre id="diagnostics">尚未生成</pre>
+			</aside>
+		</main>
+		<script src="/iframe/local-ui.js"></script>
+		<script src="/iframe/index.js"></script>
+	</body>
+</html>

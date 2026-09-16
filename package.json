@@ -1,0 +1,56 @@
+{
+	"name": "easyeda-color-silkscreen",
+	"type": "module",
+	"version": "0.1.29",
+	"description": "Multimodal colorful silkscreen generator for EasyEDA Pro",
+	"author": "EasyEDA Color contributors",
+	"license": "Apache-2.0",
+	"homepage": "https://pro.lceda.cn/",
+	"bin": {
+		"create-easyeda-api-sdk": "./build/create.js"
+	},
+	"engines": {
+		"node": ">=20.17.0"
+	},
+	"scripts": {
+		"compile:iframe": "ts-node ./config/esbuild.iframe.ts",
+		"compile": "npm run compile:iframe && rimraf ./dist/ && ts-node ./config/esbuild.prod.ts",
+		"lint": "eslint",
+		"test": "npm run compile:iframe && node --test tests/*.test.mjs",
+		"typecheck": "tsc --noEmit",
+		"check": "npm run lint && npm run typecheck && npm test && npm run compile",
+		"fix": "eslint --fix",
+		"build": "npm run compile && ts-node ./build/packaged.ts",
+		"debug": "ts-node ./build/dev.ts",
+		"update:check": "ts-node ./build/update.ts check",
+		"update": "ts-node ./build/update.ts update && npm install",
+		"manifest:generate": "npm install && ts-node ./build/manifest.ts generate",
+		"manifest:bump": "npm install && ts-node ./build/manifest.ts bump && npm install"
+	},
+	"devDependencies": {
+		"@antfu/eslint-config": "^5.4.1",
+		"@huggingface/transformers": "4.2.0",
+		"@jlceda/pro-api-types": "^0.4.23",
+		"@types/fs-extra": "^11.0.4",
+		"@types/ws": "^8.5.13",
+		"esbuild": "^0.24.2",
+		"eslint": "^9.37.0",
+		"fs-extra": "^11.3.0",
+		"hash-wasm": "4.12.0",
+		"ignore": "^7.0.3",
+		"jszip": "^3.10.1",
+		"lint-staged": "^16.2.3",
+		"onnxruntime-web": "1.29.0",
+		"rimraf": "^6.0.1",
+		"simple-git-hooks": "^2.13.1",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.7.3",
+		"ws": "^8.18.0"
+	},
+	"simple-git-hooks": {
+		"pre-commit": "npx lint-staged"
+	},
+	"lint-staged": {
+		"*": "eslint --fix"
+	}
+}
